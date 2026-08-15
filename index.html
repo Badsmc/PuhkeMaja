@@ -24,6 +24,16 @@
       max-width: 900px;
       width: 100%;
     }
+
+    /* Анимация плавного перехода для всего интерфейса */
+    .fade-wrapper {
+      transition: opacity 0.6s ease-in-out;
+      opacity: 1;
+    }
+    .fade-wrapper.hidden {
+      opacity: 0;
+    }
+
     .header-box {
       display: flex;
       flex-direction: column;
@@ -74,67 +84,61 @@
       margin-left: auto;
       color: #38bdf8;
     }
-    .fade-content {
-      transition: opacity 0.5s ease-in-out;
-      opacity: 1;
-    }
-    .fade-content.hidden {
-      opacity: 0;
-    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="header-box">
-    <h1 id="title-main">🌌 Дашборд</h1>
-    <div id="coords-display" class="coords-info">📍 Coordinates: loading...</div>
-    <div id="lang-indicator" class="lang-badge">🇪🇪 EST</div>
-  </div>
-  
-  <div class="grid">
-    <!-- Погода -->
-    <div class="card" id="widget-weather">
-      <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">Today</span></h2>
-      <div id="weather-body" class="fade-content">
+  <!-- Обертка для плавного затухания всего дашборда при смене языка -->
+  <div id="app-wrapper" class="fade-wrapper">
+    <div class="header-box">
+      <h1 id="title-main">🌌 Дашборд</h1>
+      <div id="coords-display" class="coords-info">📍 Coordinates: loading...</div>
+      <div id="lang-indicator" class="lang-badge">🇪🇪 EST</div>
+    </div>
+    
+    <div class="grid">
+      <!-- Погода -->
+      <div class="card" id="widget-weather">
+        <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">Today</span></h2>
         <div id="weather-temp" class="value">Loading...</div>
         <div id="weather-details" class="status">--</div>
       </div>
-    </div>
 
-    <!-- Детальные осадки -->
-    <div class="card" id="widget-precipitation">
-      <h2>🌧️ <span id="h-precip">Precipitation</span></h2>
-      <div id="precip-total" class="value">Loading...</div>
-      <div id="precip-details" class="status">--</div>
-    </div>
+      <!-- Осадки -->
+      <div class="card" id="widget-precipitation">
+        <h2>🌧️ <span id="h-precip">Precipitation</span></h2>
+        <div id="precip-total" class="value">Loading...</div>
+        <div id="precip-details" class="status">--</div>
+      </div>
 
-    <!-- Северное сияние -->
-    <div class="card" id="widget-aurora">
-      <h2>🌌 <span id="h-aurora">Aurora</span></h2>
-      <div id="aurora-kp" class="value">Loading...</div>
-      <div id="aurora-status" class="status">--</div>
-    </div>
+      <!-- Северное сияние -->
+      <div class="card" id="widget-aurora">
+        <h2>🌌 <span id="h-aurora">Northern Lights</span></h2>
+        <div id="aurora-kp" class="value">Loading...</div>
+        <div id="aurora-status" class="status">--</div>
+      </div>
 
-    <!-- Звездопады -->
-    <div class="card" id="widget-meteor">
-      <h2>☄️ <span id="h-meteor">Meteor Shower</span></h2>
-      <div id="meteor-name" class="value">Loading...</div>
-      <div id="meteor-date" class="status">--</div>
-    </div>
+      <!-- Звездопады -->
+      <div class="card" id="widget-meteor">
+        <h2>☄️ <span id="h-meteor">Meteor Shower</span></h2>
+        <div id="meteor-name" class="value">Loading...</div>
+        <div id="meteor-date" class="status">--</div>
+      </div>
 
-    <!-- Затмения -->
-    <div class="card" id="widget-eclipse">
-      <h2>🌒 <span id="h-eclipse">Solar Eclipse</span></h2>
-      <div id="eclipse-date" class="value">Loading...</div>
-      <div id="eclipse-type" class="status">--</div>
-    </div>
+      <!-- Затмения -->
+      <div class="card" id="widget-eclipse">
+        <h2>🌒 <span id="h-eclipse">Solar Eclipse</span></h2>
+        <div id="eclipse-date" class="value">Loading...</div>
+        <div id="eclipse-type" class="status">--</div>
+      </div>
 
-    <!-- Фаза Луны -->
-    <div class="card" id="widget-moon">
-      <h2>🌕 <span id="h-moon">Moon Phase</span></h2>
-      <div id="moon-phase" class="value">Loading...</div>
-      <div id="moon-illumination" class="status">--</div>
+      <!-- Фаза Луны -->
+      <div class="card" id="widget-moon">
+        <h2>🌕 <span id="h-moon">Moon Phase</span></h2>
+        <div id="moon-phase" class="value">Loading...</div>
+        <div id="moon-illumination" class="status">--</div>
+      </div>
     </div>
   </div>
 </div>
@@ -151,7 +155,6 @@
     SHOW_MOON: 1
   };
 
-  // Словари языков: et (Эстонский) и en (Английский)
   const I18N = {
     et: {
       title: "🌌 Ilma- ja Astronoomia Töölaud",
@@ -225,7 +228,7 @@
     }
   };
 
-  let currentLang = 'et'; // 'et' или 'en'
+  let currentLang = 'et';
   let currentLat = CONFIG.LATITUDE;
   let currentLon = CONFIG.LONGITUDE;
   let weatherData = null;
@@ -249,7 +252,7 @@
     const t = I18N[currentLang];
     document.getElementById('title-main').innerText = t.title;
     document.getElementById('coords-display').innerText = `${t.coords}: ${currentLat.toFixed(2)}° N, ${currentLon.toFixed(2)}° E`;
-    document.getElementById('lang-indicator').innerText = currentLang === 'et' ? '🇪EST' : '🇬🇧 ENG';
+    document.getElementById('lang-indicator').innerText = currentLang === 'et' ? '🇪🇪 EST' : '🇬🇧 ENG';
 
     document.getElementById('h-weather').innerText = t.hWeather;
     document.getElementById('h-precip').innerText = t.hPrecip;
@@ -259,7 +262,6 @@
     document.getElementById('h-moon').innerText = t.hMoon;
   }
 
-  // 1. Погода и Осадки
   async function fetchWeather(lat, lon) {
     if (!CONFIG.SHOW_WEATHER && !CONFIG.SHOW_PRECIPITATION) return;
 
@@ -328,20 +330,6 @@
     `;
   }
 
-  if (CONFIG.SHOW_WEATHER) {
-    setInterval(() => {
-      const bodyEl = document.getElementById('weather-body');
-      bodyEl.classList.add('hidden');
-      
-      setTimeout(() => {
-        showTomorrow = !showTomorrow;
-        renderWeather();
-        bodyEl.classList.remove('hidden');
-      }, 500);
-    }, 60000);
-  }
-
-  // 2. Северное сияние
   async function fetchAurora(lat) {
     if (!CONFIG.SHOW_AURORA) return;
     const t = I18N[currentLang];
@@ -364,7 +352,6 @@
     }
   }
 
-  // 3. Звездопады
   function fetchMeteors() {
     if (!CONFIG.SHOW_METEOR) return;
     const t = I18N[currentLang];
@@ -386,7 +373,6 @@
     document.getElementById('meteor-date').innerText = `📅 ${t.peak}: ${nextShower.start.toLocaleDateString(t.locale, options)}`;
   }
 
-  // 4. Затмения
   function fetchEclipses() {
     if (!CONFIG.SHOW_ECLIPSE) return;
     const t = I18N[currentLang];
@@ -405,7 +391,6 @@
     document.getElementById('eclipse-type').innerText = `🔍 ${nextEclipse.type}`;
   }
 
-  // 5. Фазы Луны
   function fetchMoonPhase() {
     if (!CONFIG.SHOW_MOON) return;
     const t = I18N[currentLang];
@@ -459,13 +444,19 @@
 
   loadAllData();
 
-  // Автоматическая перерисовка языка каждые 90 секунд (90000 миллисекунд)
+  // Плавная смена языка (fade-out -> смена текста -> fade-in) каждые 90 секунд
   setInterval(() => {
-    currentLang = currentLang === 'et' ? 'en' : 'et';
-    runDataFetch();
+    const wrapper = document.getElementById('app-wrapper');
+    wrapper.classList.add('hidden'); // Плавно скрываем всё содержимое (0.6 сек)
+
+    setTimeout(() => {
+      currentLang = currentLang === 'et' ? 'en' : 'et';
+      runDataFetch();
+      wrapper.classList.remove('hidden'); // Плавно проявляем новые данные
+    }, 600);
   }, 90000);
 
-  // Обновление данных из сети каждый час
+  // Обновление сетевых данных раз в час
   setInterval(loadAllData, 3600000);
 </script>
 
