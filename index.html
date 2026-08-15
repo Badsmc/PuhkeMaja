@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="et">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Астрономия и Погода</title>
+  <title>Astro & Weather Dashboard</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -24,8 +24,24 @@
       max-width: 900px;
       width: 100%;
     }
-    h1 { text-align: center; color: var(--accent); margin-bottom: 5px; }
-    .coords-info { text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 20px; }
+    .header-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    h1 { text-align: center; color: var(--accent); margin: 0 0 5px 0; }
+    .coords-info { text-align: center; font-size: 0.85rem; color: #64748b; }
+    .lang-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      padding: 3px 10px;
+      background: #0284c7;
+      color: #fff;
+      border-radius: 12px;
+      font-weight: bold;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -70,66 +86,63 @@
 <body>
 
 <div class="container">
-  <h1>🌌 Дашборд погоды и астрономии</h1>
-  <div id="coords-display" class="coords-info">📍 Координаты: загрузка...</div>
+  <div class="header-box">
+    <h1 id="title-main">🌌 Дашборд</h1>
+    <div id="coords-display" class="coords-info">📍 Coordinates: loading...</div>
+    <div id="lang-indicator" class="lang-badge">🇪🇪 EST</div>
+  </div>
   
   <div class="grid">
     <!-- Погода -->
     <div class="card" id="widget-weather">
-      <h2>🌤️ Погода <span id="weather-label" class="badge">Сегодня</span></h2>
+      <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">Today</span></h2>
       <div id="weather-body" class="fade-content">
-        <div id="weather-temp" class="value">Загрузка...</div>
+        <div id="weather-temp" class="value">Loading...</div>
         <div id="weather-details" class="status">--</div>
       </div>
     </div>
 
     <!-- Детальные осадки -->
     <div class="card" id="widget-precipitation">
-      <h2>🌧️ Подробно об осадках</h2>
-      <div id="precip-total" class="value">Загрузка...</div>
+      <h2>🌧️ <span id="h-precip">Precipitation</span></h2>
+      <div id="precip-total" class="value">Loading...</div>
       <div id="precip-details" class="status">--</div>
     </div>
 
     <!-- Северное сияние -->
     <div class="card" id="widget-aurora">
-      <h2>🌌 Северное сияние</h2>
-      <div id="aurora-kp" class="value">Загрузка...</div>
+      <h2>🌌 <span id="h-aurora">Aurora</span></h2>
+      <div id="aurora-kp" class="value">Loading...</div>
       <div id="aurora-status" class="status">--</div>
     </div>
 
     <!-- Звездопады -->
     <div class="card" id="widget-meteor">
-      <h2>☄️ Предстоящий звездопад</h2>
-      <div id="meteor-name" class="value">Загрузка...</div>
+      <h2>☄️ <span id="h-meteor">Meteor Shower</span></h2>
+      <div id="meteor-name" class="value">Loading...</div>
       <div id="meteor-date" class="status">--</div>
     </div>
 
     <!-- Затмения -->
     <div class="card" id="widget-eclipse">
-      <h2>🌒 Солнечное затмение</h2>
-      <div id="eclipse-date" class="value">Загрузка...</div>
+      <h2>🌒 <span id="h-eclipse">Solar Eclipse</span></h2>
+      <div id="eclipse-date" class="value">Loading...</div>
       <div id="eclipse-type" class="status">--</div>
     </div>
 
     <!-- Фаза Луны -->
     <div class="card" id="widget-moon">
-      <h2>🌕 Фаза Луны</h2>
-      <div id="moon-phase" class="value">Загрузка...</div>
+      <h2>🌕 <span id="h-moon">Moon Phase</span></h2>
+      <div id="moon-phase" class="value">Loading...</div>
       <div id="moon-illumination" class="status">--</div>
     </div>
   </div>
 </div>
 
 <script>
-  // ==========================================
-  // НАСТРОЙКИ КООРДИНАТ И ВИДЖЕТОВ
-  // ==========================================
   const CONFIG = {
-    // Введите ваши широту (LATITUDE) и долготу (LONGITUDE)
     LATITUDE: 58.37,
     LONGITUDE: 26.72,
-
-    // Переключатели виджетов (1 = включен, 0 = отключен)
     SHOW_WEATHER: 1,
     SHOW_PRECIPITATION: 1,
     SHOW_AURORA: 1,
@@ -138,6 +151,81 @@
     SHOW_MOON: 1
   };
 
+  // Словари языков: et (Эстонский) и en (Английский)
+  const I18N = {
+    et: {
+      title: "🌌 Ilma- ja Astronoomia Töölaud",
+      coords: "📍 Koordinaadid",
+      hWeather: "Ilm",
+      hPrecip: "Sademed",
+      hAurora: "Virmalised",
+      hMeteor: "Meteoorisadu",
+      hEclipse: "Päikesevarjutus",
+      hMoon: "Kuu faas",
+      today: "Täna",
+      tomorrow: "Homme",
+      precip: "Sademed",
+      clouds: "Pilvisus",
+      probability: "Tõenäosus",
+      nextHours: "Lähitunnid",
+      highAurora: "🟢 Kõrge vaatluse tõenäosus!",
+      lowAurora: "⚪ Madal aktiivsus",
+      peak: "Tippaeg",
+      illumination: "Valgustatus",
+      locale: "et-EE",
+      phases: {
+        new: "Noorkuu 🌑",
+        waxCrescent: "Kasvav sirp 🌒",
+        firstQ: "Esimene veerand 🌓",
+        waxGibbous: "Kasvav kuu 🌔",
+        full: "Täiskuu 🌕",
+        wanGibbous: "Kahanev kuu 🌖",
+        thirdQ: "Viimane veerand 🌗",
+        wanCrescent: "Kahanev sirp 🌘"
+      },
+      eclipses: {
+        total: "Täielik päikesevarjutus",
+        annular: "Rõngasjas päikesevarjutus"
+      }
+    },
+    en: {
+      title: "🌌 Astronomy & Weather Dashboard",
+      coords: "📍 Coordinates",
+      hWeather: "Weather",
+      hPrecip: "Precipitation",
+      hAurora: "Northern Lights",
+      hMeteor: "Meteor Shower",
+      hEclipse: "Solar Eclipse",
+      hMoon: "Moon Phase",
+      today: "Today",
+      tomorrow: "Tomorrow",
+      precip: "Precipitation",
+      clouds: "Cloud cover",
+      probability: "Probability",
+      nextHours: "Next hours",
+      highAurora: "🟢 High chance of observation!",
+      lowAurora: "⚪ Low activity",
+      peak: "Peak",
+      illumination: "Illumination",
+      locale: "en-US",
+      phases: {
+        new: "New Moon 🌑",
+        waxCrescent: "Waxing Crescent 🌒",
+        firstQ: "First Quarter 🌓",
+        waxGibbous: "Waxing Gibbous 🌔",
+        full: "Full Moon 🌕",
+        wanGibbous: "Waning Gibbous 🌖",
+        thirdQ: "Third Quarter 🌗",
+        wanCrescent: "Waning Crescent 🌘"
+      },
+      eclipses: {
+        total: "Total Solar Eclipse",
+        annular: "Annular Solar Eclipse"
+      }
+    }
+  };
+
+  let currentLang = 'et'; // 'et' или 'en'
   let currentLat = CONFIG.LATITUDE;
   let currentLon = CONFIG.LONGITUDE;
   let weatherData = null;
@@ -157,8 +245,18 @@
     if (el) el.style.display = isEnabled ? 'block' : 'none';
   }
 
-  function updateCoordsDisplay(lat, lon) {
-    document.getElementById('coords-display').innerText = `📍 Координаты: ${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
+  function updateStaticLabels() {
+    const t = I18N[currentLang];
+    document.getElementById('title-main').innerText = t.title;
+    document.getElementById('coords-display').innerText = `${t.coords}: ${currentLat.toFixed(2)}° N, ${currentLon.toFixed(2)}° E`;
+    document.getElementById('lang-indicator').innerText = currentLang === 'et' ? '🇪EST' : '🇬🇧 ENG';
+
+    document.getElementById('h-weather').innerText = t.hWeather;
+    document.getElementById('h-precip').innerText = t.hPrecip;
+    document.getElementById('h-aurora').innerText = t.hAurora;
+    document.getElementById('h-meteor').innerText = t.hMeteor;
+    document.getElementById('h-eclipse').innerText = t.hEclipse;
+    document.getElementById('h-moon').innerText = t.hMoon;
   }
 
   // 1. Погода и Осадки
@@ -173,28 +271,28 @@
       if (CONFIG.SHOW_WEATHER) renderWeather();
       if (CONFIG.SHOW_PRECIPITATION) renderPrecipitation();
     } catch (e) {
-      if (CONFIG.SHOW_WEATHER) document.getElementById('weather-temp').innerText = '❌ Ошибка';
-      if (CONFIG.SHOW_PRECIPITATION) document.getElementById('precip-total').innerText = '❌ Ошибка';
+      if (CONFIG.SHOW_WEATHER) document.getElementById('weather-temp').innerText = '❌ Error';
+      if (CONFIG.SHOW_PRECIPITATION) document.getElementById('precip-total').innerText = '❌ Error';
     }
   }
 
   function renderWeather() {
     if (!weatherData) return;
-
+    const t = I18N[currentLang];
     const labelEl = document.getElementById('weather-label');
     const tempEl = document.getElementById('weather-temp');
     const detailsEl = document.getElementById('weather-details');
 
     if (!showTomorrow) {
-      labelEl.innerText = 'Сегодня';
+      labelEl.innerText = t.today;
       const temp = weatherData.current_weather.temperature;
       const clouds = weatherData.hourly.cloudcover[0] || 0;
       const precip = weatherData.hourly.precipitation[0] || 0;
 
       tempEl.innerText = `🌡️ ${temp} °C`;
-      detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
+      detailsEl.innerHTML = `🌧️ ${t.precip}: ${precip} mm<br>☁️ ${t.clouds}: ${clouds}%`;
     } else {
-      labelEl.innerText = 'Завтра';
+      labelEl.innerText = t.tomorrow;
       const maxTemp = weatherData.daily.temperature_2m_max[1];
       const minTemp = weatherData.daily.temperature_2m_min[1];
       const avgTemp = Math.round((maxTemp + minTemp) / 2 * 10) / 10;
@@ -202,12 +300,13 @@
       const clouds = weatherData.daily.cloudcover_mean[1];
 
       tempEl.innerText = `🌡️ ~${avgTemp} °C`;
-      detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
+      detailsEl.innerHTML = `🌧️ ${t.precip}: ${precip} mm<br>☁️ ${t.clouds}: ${clouds}%`;
     }
   }
 
   function renderPrecipitation() {
     if (!weatherData) return;
+    const t = I18N[currentLang];
 
     const totalEl = document.getElementById('precip-total');
     const detailsEl = document.getElementById('precip-details');
@@ -221,15 +320,14 @@
     const h1 = weatherData.hourly.precipitation[1] || 0;
     const h2 = weatherData.hourly.precipitation[2] || 0;
 
-    totalEl.innerText = `💧 ${todaySum} мм / сут`;
+    totalEl.innerText = `💧 ${todaySum} mm / d`;
     detailsEl.innerHTML = `
-      🎯 Вероятность: ${probMax}%<br>
-      ⏱️ Ближайшие часы:<br>
-      +1ч: ${h0} мм | +2ч: ${h1} мм | +3ч: ${h2} мм
+      🎯 ${t.probability}: ${probMax}%<br>
+      ⏱️ ${t.nextHours}:<br>
+      +1h: ${h0}mm | +2h: ${h1}mm | +3h: ${h2}mm
     `;
   }
 
-  // Плавный затухающий переход погоды раз в 60 сек
   if (CONFIG.SHOW_WEATHER) {
     setInterval(() => {
       const bodyEl = document.getElementById('weather-body');
@@ -243,71 +341,74 @@
     }, 60000);
   }
 
-  // 2. Северное сияние (учитывает широту)
+  // 2. Северное сияние
   async function fetchAurora(lat) {
     if (!CONFIG.SHOW_AURORA) return;
+    const t = I18N[currentLang];
     try {
       const res = await fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json');
       const data = await res.json();
       const lastEntry = data[data.length - 1];
       const kp = lastEntry.kp_index;
 
-      // Оценка шанса видимости в зависимости от широты
       let requiredKp = 5;
       if (lat >= 60) requiredKp = 3;
       else if (lat >= 55) requiredKp = 4;
 
       document.getElementById('aurora-kp').innerText = `📊 Kp: ${kp} / 9`;
       document.getElementById('aurora-status').innerText = kp >= requiredKp 
-        ? '🟢 Высокая вероятность наблюдения!' 
-        : `⚪ Низкая (нужен Kp ≥ ${requiredKp})`;
+        ? t.highAurora 
+        : `${t.lowAurora} (Kp ≥ ${requiredKp})`;
     } catch (e) {
-      document.getElementById('aurora-kp').innerText = '❌ Ошибка';
+      document.getElementById('aurora-kp').innerText = '❌ Error';
     }
   }
 
   // 3. Звездопады
   function fetchMeteors() {
     if (!CONFIG.SHOW_METEOR) return;
+    const t = I18N[currentLang];
     const now = new Date();
     const showers = [
-      { name: 'Ориониды ☄️', start: new Date(now.getFullYear(), 9, 21) },
-      { name: 'Леониды ☄️', start: new Date(now.getFullYear(), 10, 17) },
-      { name: 'Геминиды ☄️', start: new Date(now.getFullYear(), 11, 14) },
-      { name: 'Квадрантиды ☄️', start: new Date(now.getFullYear() + 1, 0, 3) },
-      { name: 'Лириды ☄️', start: new Date(now.getFullYear() + 1, 3, 22) },
-      { name: 'Эта-Аквариды ☄️', start: new Date(now.getFullYear() + 1, 4, 6) },
-      { name: 'Персеиды ☄️', start: new Date(now.getFullYear() + 1, 7, 12) }
+      { name: 'Orionids ☄️', start: new Date(now.getFullYear(), 9, 21) },
+      { name: 'Leonids ☄️', start: new Date(now.getFullYear(), 10, 17) },
+      { name: 'Geminids ☄️', start: new Date(now.getFullYear(), 11, 14) },
+      { name: 'Quadrantids ☄️', start: new Date(now.getFullYear() + 1, 0, 3) },
+      { name: 'Lyrids ☄️', start: new Date(now.getFullYear() + 1, 3, 22) },
+      { name: 'Eta Aquariids ☄️', start: new Date(now.getFullYear() + 1, 4, 6) },
+      { name: 'Perseids ☄️', start: new Date(now.getFullYear() + 1, 7, 12) }
     ];
 
     const nextShower = showers.find(s => s.start > now) || showers[0];
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     
     document.getElementById('meteor-name').innerText = nextShower.name;
-    document.getElementById('meteor-date').innerText = `📅 Пик: ${nextShower.start.toLocaleDateString('ru-RU', options)}`;
+    document.getElementById('meteor-date').innerText = `📅 ${t.peak}: ${nextShower.start.toLocaleDateString(t.locale, options)}`;
   }
 
   // 4. Затмения
   function fetchEclipses() {
     if (!CONFIG.SHOW_ECLIPSE) return;
+    const t = I18N[currentLang];
     const now = new Date();
     const eclipses = [
-      { date: new Date(2027, 7, 2), type: 'Полное солнечное затмение' },
-      { date: new Date(2028, 0, 26), type: 'Кольцеобразное солнечное затмение' },
-      { date: new Date(2028, 6, 22), type: 'Полное солнечное затмение' },
-      { date: new Date(2030, 5, 1), type: 'Кольцеобразное солнечное затмение' }
+      { date: new Date(2027, 7, 2), type: t.eclipses.total },
+      { date: new Date(2028, 0, 26), type: t.eclipses.annular },
+      { date: new Date(2028, 6, 22), type: t.eclipses.total },
+      { date: new Date(2030, 5, 1), type: t.eclipses.annular }
     ];
 
     const nextEclipse = eclipses.find(e => e.date > now) || eclipses[0];
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
 
-    document.getElementById('eclipse-date').innerText = nextEclipse.date.toLocaleDateString('ru-RU', options);
+    document.getElementById('eclipse-date').innerText = nextEclipse.date.toLocaleDateString(t.locale, options);
     document.getElementById('eclipse-type').innerText = `🔍 ${nextEclipse.type}`;
   }
 
   // 5. Фазы Луны
   function fetchMoonPhase() {
     if (!CONFIG.SHOW_MOON) return;
+    const t = I18N[currentLang];
     const now = new Date();
     const knownNewMoon = new Date(2000, 0, 6, 18, 14, 0); 
     const synodicMonth = 29.53058882;
@@ -317,20 +418,28 @@
 
     const illumination = Math.round((1 - Math.cos(cycle * 2 * Math.PI)) / 2 * 100);
 
-    let phaseName = 'Новолуние 🌑';
-    if (cycle > 0.03 && cycle <= 0.22) phaseName = 'Растущий серп 🌒';
-    else if (cycle > 0.22 && cycle <= 0.28) phaseName = 'Первая четверть 🌓';
-    else if (cycle > 0.28 && cycle <= 0.47) phaseName = 'Растущая Луна 🌔';
-    else if (cycle > 0.47 && cycle <= 0.53) phaseName = 'Полнолуние 🌕';
-    else if (cycle > 0.53 && cycle <= 0.72) phaseName = 'Убывающая Луна 🌖';
-    else if (cycle > 0.72 && cycle <= 0.78) phaseName = 'Последняя четверть 🌗';
-    else if (cycle > 0.78 && cycle <= 0.97) phaseName = 'Убывающий серп 🌘';
+    let phaseName = t.phases.new;
+    if (cycle > 0.03 && cycle <= 0.22) phaseName = t.phases.waxCrescent;
+    else if (cycle > 0.22 && cycle <= 0.28) phaseName = t.phases.firstQ;
+    else if (cycle > 0.28 && cycle <= 0.47) phaseName = t.phases.waxGibbous;
+    else if (cycle > 0.47 && cycle <= 0.53) phaseName = t.phases.full;
+    else if (cycle > 0.53 && cycle <= 0.72) phaseName = t.phases.wanGibbous;
+    else if (cycle > 0.72 && cycle <= 0.78) phaseName = t.phases.thirdQ;
+    else if (cycle > 0.78 && cycle <= 0.97) phaseName = t.phases.wanCrescent;
 
     document.getElementById('moon-phase').innerText = phaseName;
-    document.getElementById('moon-illumination').innerText = `💡 Освещенность: ${illumination}%`;
+    document.getElementById('moon-illumination').innerText = `💡 ${t.illumination}: ${illumination}%`;
   }
 
-  // Инициализация
+  function runDataFetch() {
+    updateStaticLabels();
+    fetchWeather(currentLat, currentLon);
+    fetchAurora(currentLat);
+    fetchMeteors();
+    fetchEclipses();
+    fetchMoonPhase();
+  }
+
   function loadAllData() {
     applyWidgetConfig();
 
@@ -339,31 +448,24 @@
         pos => {
           currentLat = pos.coords.latitude;
           currentLon = pos.coords.longitude;
-          updateCoordsDisplay(currentLat, currentLon);
           runDataFetch();
         },
-        () => {
-          updateCoordsDisplay(currentLat, currentLon);
-          runDataFetch();
-        }
+        () => runDataFetch()
       );
     } else {
-      updateCoordsDisplay(currentLat, currentLon);
       runDataFetch();
     }
   }
 
-  function runDataFetch() {
-    fetchWeather(currentLat, currentLon);
-    fetchAurora(currentLat);
-    fetchMeteors();
-    fetchEclipses();
-    fetchMoonPhase();
-  }
-
   loadAllData();
 
-  // Автообновление каждые 60 минут
+  // Автоматическая перерисовка языка каждые 90 секунд (90000 миллисекунд)
+  setInterval(() => {
+    currentLang = currentLang === 'et' ? 'en' : 'et';
+    runDataFetch();
+  }, 90000);
+
+  // Обновление данных из сети каждый час
   setInterval(loadAllData, 3600000);
 </script>
 
