@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Астрономия и Погода</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --accent: #38bdf8;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+    h1 { text-align: center; color: var(--accent); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+      color: var(--accent);
+    }
+    .value { font-size: 1.5rem; font-weight: bold; margin: 10px 0; }
+    .status { font-size: 0.9rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Дашборд погоды и астрономии</h1>
+  
+  <div class="grid">
+    <!-- Погода -->
+    <div class="card">
+      <h2>Погода</h2>
+      <div id="weather-temp" class="value">Загрузка...</div>
+      <div id="weather-desc" class="status">--</div>
+    </div>
+
+    <!-- Северное сияние -->
+    <div class="card">
+      <h2>Северное сияние (Kp-индекс)</h2>
+      <div id="aurora-kp" class="value">Загрузка...</div>
+      <div id="aurora-status" class="status">--</div>
+    </div>
+
+    <!-- Звездопады -->
+    <div class="card">
+      <h2>Ближайший звездопад</h2>
+      <div id="meteor-name" class="value">Загрузка...</div>
+      <div id="meteor-date" class="status">--</div>
+    </div>
+
+    <!-- Затмения -->
+    <div class="card">
+      <h2>Солнечное затмение</h2>
+      <div id="eclipse-date" class="value">Загрузка...</div>
+      <div id="eclipse-type" class="status">--</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 1. Загрузка погоды через Open-Meteo
+  async function fetchWeather(lat = 52.52, lon = 13.41) {
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+      const data = await res.json();
+      document.getElementById('weather-temp').innerText = `${data.current_weather.temperature} °C`;
+      document.getElementById('weather-desc').innerText = `Скорость ветра: ${data.current_weather.windspeed} км/ч`;
+    } catch (e) {
+      document.getElementById('weather-temp').innerText = 'Ошибка';
+    }
+  }
+
+  // 2. Данные о северном сиянии (Kp-индекс NOAA)
+  async function fetchAurora() {
+    try {
+      const res = await fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json');
+      const data = await res.json();
+      const lastEntry = data[data.length - 1];
+      const kp = lastEntry.kp_index;
+      
+      document.getElementById('aurora-kp').innerText = `${kp} / 9`;
+      document.getElementById('aurora-status').innerText = kp >= 5 
+        ? 'Высокая вероятность наблюдения!' 
+        : 'Низкая активность';
+    } catch (e) {
+      document.getElementById('aurora-kp').innerText = 'Ошибка';
+    }
+  }
+
+  // 3. Астрономические события (статическая выборка реальных данных)
+  function loadAstroEvents() {
+    // Звездопад
+    document.getElementById('meteor-name').innerText = 'Персеиды';
+    document.getElementById('meteor-date').innerText = 'Пик: 12-13 августа';
+
+    // Затмение
+    document.getElementById('eclipse-date').innerText = '12 августа 2026';
+    document.getElementById('eclipse-type').innerText = 'Полное солнечное затмение';
+  }
+
+  // Определение геолокации
+  navigator.geolocation.getCurrentPosition(
+    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+    () => fetchWeather() // fallback координаты
+  );
+
+  fetchAurora();
+  loadAstroEvents();
+</script>
+
+</body>
+</html>
