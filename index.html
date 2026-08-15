@@ -25,7 +25,7 @@
       width: 100%;
     }
 
-    /* Анимация плавного перехода для всего интерфейса */
+    /* Анимация плавного перехода для всего интерфейса при смене языка */
     .fade-wrapper {
       transition: opacity 0.6s ease-in-out;
       opacity: 1;
@@ -84,25 +84,35 @@
       margin-left: auto;
       color: #38bdf8;
     }
+
+    /* Внутренняя плавная смена «Сегодня / Завтра» */
+    .fade-content {
+      transition: opacity 0.5s ease-in-out;
+      opacity: 1;
+    }
+    .fade-content.hidden {
+      opacity: 0;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- Обертка для плавного затухания всего дашборда при смене языка -->
   <div id="app-wrapper" class="fade-wrapper">
     <div class="header-box">
       <h1 id="title-main">🌌 Дашборд</h1>
       <div id="coords-display" class="coords-info">📍 Coordinates: loading...</div>
-      <div id="lang-indicator" class="lang-badge">🇪🇪 EST</div>
+      <div id="lang-indicator" class="lang-badge">...</div>
     </div>
     
     <div class="grid">
       <!-- Погода -->
       <div class="card" id="widget-weather">
-        <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">Today</span></h2>
-        <div id="weather-temp" class="value">Loading...</div>
-        <div id="weather-details" class="status">--</div>
+        <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">--</span></h2>
+        <div id="weather-body" class="fade-content">
+          <div id="weather-temp" class="value">Loading...</div>
+          <div id="weather-details" class="status">--</div>
+        </div>
       </div>
 
       <!-- Осадки -->
@@ -144,6 +154,9 @@
 </div>
 
 <script>
+  // ==========================================
+  // НАСТРОЙКИ КООРДИНАТ И ВИДЖЕТОВ (1 = вкл, 0 = выкл)
+  // ==========================================
   const CONFIG = {
     LATITUDE: 58.37,
     LONGITUDE: 26.72,
@@ -252,7 +265,11 @@
     const t = I18N[currentLang];
     document.getElementById('title-main').innerText = t.title;
     document.getElementById('coords-display').innerText = `${t.coords}: ${currentLat.toFixed(2)}° N, ${currentLon.toFixed(2)}° E`;
-    document.getElementById('lang-indicator').innerText = currentLang === 'et' ? '🇪🇪 EST' : '🇬🇧 ENG';
+    
+    // Юникод-последовательности гарантия работы флагов
+    const flagEst = "\uD83C\uDDEA\uD83C\uDDFE"; // 🇪🇪
+    const flagEng = "\uD83C\uDDEC\uD83C\uDDE7"; // 🇬🇧
+    document.getElementById('lang-indicator').innerText = currentLang === 'et' ? `${flagEst} EST` : `${flagEng} ENG`;
 
     document.getElementById('h-weather').innerText = t.hWeather;
     document.getElementById('h-precip').innerText = t.hPrecip;
@@ -444,21 +461,35 @@
 
   loadAllData();
 
-  // Плавная смена языка (fade-out -> смена текста -> fade-in) каждые 90 секунд
+  // Плавная смена Сегодня/Завтра каждые 60 сек
+  if (CONFIG.SHOW_WEATHER) {
+    setInterval(() => {
+      const bodyEl = document.getElementById('weather-body');
+      bodyEl.classList.add('hidden');
+      
+      setTimeout(() => {
+        showTomorrow = !showTomorrow;
+        renderWeather();
+        bodyEl.classList.remove('hidden');
+      }, 500);
+    }, 60000);
+  }
+
+  // Плавная перерисовка языка каждые 90 секунд (90000 миллисекунд)
   setInterval(() => {
     const wrapper = document.getElementById('app-wrapper');
-    wrapper.classList.add('hidden'); // Плавно скрываем всё содержимое (0.6 сек)
+    wrapper.classList.add('hidden');
 
     setTimeout(() => {
       currentLang = currentLang === 'et' ? 'en' : 'et';
       runDataFetch();
-      wrapper.classList.remove('hidden'); // Плавно проявляем новые данные
+      wrapper.classList.remove('hidden');
     }, 600);
   }, 90000);
 
-  // Обновление сетевых данных раз в час
+  // Обновление сетевых данных каждые 60 минут
   setInterval(loadAllData, 3600000);
 </script>
- 
+
 </body>
 </html>
