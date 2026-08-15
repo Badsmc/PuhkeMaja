@@ -21,13 +21,13 @@
       justify-content: center;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       width: 100%;
     }
     h1 { text-align: center; color: var(--accent); }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
       margin-top: 20px;
     }
@@ -35,7 +35,7 @@
       background: var(--card-bg);
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
     .card h2 {
       margin-top: 0;
@@ -43,96 +43,214 @@
       border-bottom: 1px solid #334155;
       padding-bottom: 8px;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .value { font-size: 1.5rem; font-weight: bold; margin: 10px 0; }
-    .status { font-size: 0.9rem; color: #94a3b8; }
+    .value { font-size: 1.4rem; font-weight: bold; margin: 10px 0; }
+    .status { font-size: 0.9rem; color: #94a3b8; line-height: 1.4; }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: #334155;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      color: #38bdf8;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Дашборд погоды и астрономии</h1>
+  <h1>🌌 Дашборд погоды и астрономии</h1>
   
   <div class="grid">
     <!-- Погода -->
     <div class="card">
-      <h2>Погода</h2>
+      <h2>🌤️ Погода <span id="weather-label" class="badge">Сегодня</span></h2>
       <div id="weather-temp" class="value">Загрузка...</div>
-      <div id="weather-desc" class="status">--</div>
+      <div id="weather-details" class="status">--</div>
     </div>
 
     <!-- Северное сияние -->
     <div class="card">
-      <h2>Северное сияние (Kp-индекс)</h2>
+      <h2>🌌 Северное сияние</h2>
       <div id="aurora-kp" class="value">Загрузка...</div>
       <div id="aurora-status" class="status">--</div>
     </div>
 
     <!-- Звездопады -->
     <div class="card">
-      <h2>Ближайший звездопад</h2>
+      <h2>☄️ Предстоящий звездопад</h2>
       <div id="meteor-name" class="value">Загрузка...</div>
       <div id="meteor-date" class="status">--</div>
     </div>
 
     <!-- Затмения -->
     <div class="card">
-      <h2>Солнечное затмение</h2>
+      <h2>🌒 Солнечное затмение</h2>
       <div id="eclipse-date" class="value">Загрузка...</div>
       <div id="eclipse-type" class="status">--</div>
+    </div>
+
+    <!-- Фаза Луны -->
+    <div class="card">
+      <h2>🌕 Фаза Луны</h2>
+      <div id="moon-phase" class="value">Загрузка...</div>
+      <div id="moon-illumination" class="status">--</div>
     </div>
   </div>
 </div>
 
 <script>
-  // 1. Загрузка погоды через Open-Meteo
-  async function fetchWeather(lat = 52.52, lon = 13.41) {
+  let weatherData = null;
+  let showTomorrow = false;
+
+  // 1. Погода (Сегодня / Завтра с автоматическим переключением)
+  async function fetchWeather(lat = 58.37, lon = 26.72) {
     try {
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-      const data = await res.json();
-      document.getElementById('weather-temp').innerText = `${data.current_weather.temperature} °C`;
-      document.getElementById('weather-desc').innerText = `Скорость ветра: ${data.current_weather.windspeed} км/ч`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=cloudcover,precipitation&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,cloudcover_mean&timezone=auto`;
+      const res = await fetch(url);
+      weatherData = await res.json();
+      renderWeather();
     } catch (e) {
-      document.getElementById('weather-temp').innerText = 'Ошибка';
+      document.getElementById('weather-temp').innerText = '❌ Ошибка';
     }
   }
 
-  // 2. Данные о северном сиянии (Kp-индекс NOAA)
+  function renderWeather() {
+    if (!weatherData) return;
+
+    const labelEl = document.getElementById('weather-label');
+    const tempEl = document.getElementById('weather-temp');
+    const detailsEl = document.getElementById('weather-details');
+
+    if (!showTomorrow) {
+      // Погода на сегодня (текущие данные)
+      labelEl.innerText = 'Сегодня';
+      const temp = weatherData.current_weather.temperature;
+      const clouds = weatherData.hourly.cloudcover[0] || 0;
+      const precip = weatherData.hourly.precipitation[0] || 0;
+
+      tempEl.innerText = `🌡️ ${temp} °C`;
+      detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
+    } else {
+      // Погода на завтра (средние / суточные данные)
+      labelEl.innerText = 'Завтра';
+      const maxTemp = weatherData.daily.temperature_2m_max[1];
+      const minTemp = weatherData.daily.temperature_2m_min[1];
+      const avgTemp = Math.round((maxTemp + minTemp) / 2 * 10) / 10;
+      const precip = weatherData.daily.precipitation_sum[1];
+      const clouds = weatherData.daily.cloudcover_mean[1];
+
+      tempEl.innerText = `🌡️ ~${avgTemp} °C (${minTemp}…${maxTemp}°C)`;
+      detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
+    }
+  }
+
+  // Переключение погоды «Сегодня / Завтра» каждые 30 секунд
+  setInterval(() => {
+    showTomorrow = !showTomorrow;
+    renderWeather();
+  }, 30000);
+
+  // 2. Северное сияние (NOAA Kp-индекс)
   async function fetchAurora() {
     try {
       const res = await fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json');
       const data = await res.json();
       const lastEntry = data[data.length - 1];
       const kp = lastEntry.kp_index;
-      
-      document.getElementById('aurora-kp').innerText = `${kp} / 9`;
+
+      document.getElementById('aurora-kp').innerText = `📊 Kp: ${kp} / 9`;
       document.getElementById('aurora-status').innerText = kp >= 5 
-        ? 'Высокая вероятность наблюдения!' 
-        : 'Низкая активность';
+        ? '🟢 Высокая вероятность наблюдения!' 
+        : '⚪ Низкая активность';
     } catch (e) {
-      document.getElementById('aurora-kp').innerText = 'Ошибка';
+      document.getElementById('aurora-kp').innerText = '❌ Ошибка';
     }
   }
 
-  // 3. Астрономические события (статическая выборка реальных данных)
-  function loadAstroEvents() {
-    // Звездопад
-    document.getElementById('meteor-name').innerText = 'Персеиды';
-    document.getElementById('meteor-date').innerText = 'Пик: 12-13 августа';
+  // 3. Ближайшие будущие звездопады
+  function fetchMeteors() {
+    const now = new Date();
+    // База звездопадов
+    const showers = [
+      { name: 'Ориониды ☄️', start: new Date(now.getFullYear(), 9, 21) },
+      { name: 'Леониды ☄️', start: new Date(now.getFullYear(), 10, 17) },
+      { name: 'Геминиды ☄️', start: new Date(now.getFullYear(), 11, 14) },
+      { name: 'Квадрантиды ☄️', start: new Date(now.getFullYear() + 1, 0, 3) },
+      { name: 'Лириды ☄️', start: new Date(now.getFullYear() + 1, 3, 22) },
+      { name: 'Эта-Аквариды ☄️', start: new Date(now.getFullYear() + 1, 4, 6) },
+      { name: 'Персеиды ☄️', start: new Date(now.getFullYear() + 1, 7, 12) }
+    ];
 
-    // Затмение
-    document.getElementById('eclipse-date').innerText = '12 августа 2026';
-    document.getElementById('eclipse-type').innerText = 'Полное солнечное затмение';
+    // Находим первый будущий звездопад
+    const nextShower = showers.find(s => s.start > now) || showers[0];
+    const options = { month: 'long', day: 'numeric', year: 'numeric' };
+    
+    document.getElementById('meteor-name').innerText = nextShower.name;
+    document.getElementById('meteor-date').innerText = `📅 Пик: ${nextShower.start.toLocaleDateString('ru-RU', options)}`;
   }
 
-  // Определение геолокации
-  navigator.geolocation.getCurrentPosition(
-    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-    () => fetchWeather() // fallback координаты
-  );
+  // 4. Ближайшие будущие затмения
+  function fetchEclipses() {
+    const now = new Date();
+    const eclipses = [
+      { date: new Date(2027, 7, 2), type: 'Полное солнечное затмение' },
+      { date: new Date(2028, 0, 26), type: 'Кольцеобразное солнечное затмение' },
+      { date: new Date(2028, 6, 22), type: 'Полное солнечное затмение' },
+      { date: new Date(2030, 5, 1), type: 'Кольцеобразное солнечное затмение' }
+    ];
 
-  fetchAurora();
-  loadAstroEvents();
+    const nextEclipse = eclipses.find(e => e.date > now) || eclipses[0];
+    const options = { month: 'long', day: 'numeric', year: 'numeric' };
+
+    document.getElementById('eclipse-date').innerText = nextEclipse.date.toLocaleDateString('ru-RU', options);
+    document.getElementById('eclipse-type').innerText = `🔍 ${nextEclipse.type}`;
+  }
+
+  // 5. Расчет фазы Луны и освещенности
+  function fetchMoonPhase() {
+    const now = new Date();
+    const knownNewMoon = new Date(2000, 0, 6, 18, 14, 0); 
+    const synodicMonth = 29.53058882;
+
+    const diffDays = (now - knownNewMoon) / (1000 * 60 * 60 * 24);
+    const cycle = (diffDays % synodicMonth) / synodicMonth;
+
+    const illumination = Math.round((1 - Math.cos(cycle * 2 * Math.PI)) / 2 * 100);
+
+    let phaseName = 'Новолуние 🌑';
+    if (cycle > 0.03 && cycle <= 0.22) phaseName = 'Растущий серп 🌒';
+    else if (cycle > 0.22 && cycle <= 0.28) phaseName = 'Первая четверть 🌓';
+    else if (cycle > 0.28 && cycle <= 0.47) phaseName = 'Растущая Луна 🌔';
+    else if (cycle > 0.47 && cycle <= 0.53) phaseName = 'Полнолуние 🌕';
+    else if (cycle > 0.53 && cycle <= 0.72) phaseName = 'Убывающая Луна 🌖';
+    else if (cycle > 0.72 && cycle <= 0.78) phaseName = 'Последняя четверть 🌗';
+    else if (cycle > 0.78 && cycle <= 0.97) phaseName = 'Убывающий серп 🌘';
+
+    document.getElementById('moon-phase').innerText = phaseName;
+    document.getElementById('moon-illumination').innerText = `💡 Освещенность: ${illumination}%`;
+  }
+
+  // Запуск и первичная загрузка
+  function loadAllData() {
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+      () => fetchWeather()
+    );
+    fetchAurora();
+    fetchMeteors();
+    fetchEclipses();
+    fetchMoonPhase();
+  }
+
+  loadAllData();
+
+  // Обновление всех данных раз в час (3 600 000 миллисекунд)
+  setInterval(loadAllData, 3600000);
 </script>
 
 </body>
