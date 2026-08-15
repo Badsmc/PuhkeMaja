@@ -55,8 +55,16 @@
       padding: 2px 8px;
       background: #334155;
       border-radius: 4px;
-      margin-bottom: 6px;
+      margin-left: auto;
       color: #38bdf8;
+    }
+    /* Плавное исчезновение/появление для виджета погоды */
+    .fade-content {
+      transition: opacity 0.5s ease-in-out;
+      opacity: 1;
+    }
+    .fade-content.hidden {
+      opacity: 0;
     }
   </style>
 </head>
@@ -67,35 +75,44 @@
   
   <div class="grid">
     <!-- Погода -->
-    <div class="card">
+    <div class="card" id="widget-weather">
       <h2>🌤️ Погода <span id="weather-label" class="badge">Сегодня</span></h2>
-      <div id="weather-temp" class="value">Загрузка...</div>
-      <div id="weather-details" class="status">--</div>
+      <div id="weather-body" class="fade-content">
+        <div id="weather-temp" class="value">Загрузка...</div>
+        <div id="weather-details" class="status">--</div>
+      </div>
+    </div>
+
+    <!-- Детальные осадки -->
+    <div class="card" id="widget-precipitation">
+      <h2>🌧️ Подробно об осадках</h2>
+      <div id="precip-total" class="value">Загрузка...</div>
+      <div id="precip-details" class="status">--</div>
     </div>
 
     <!-- Северное сияние -->
-    <div class="card">
+    <div class="card" id="widget-aurora">
       <h2>🌌 Северное сияние</h2>
       <div id="aurora-kp" class="value">Загрузка...</div>
       <div id="aurora-status" class="status">--</div>
     </div>
 
     <!-- Звездопады -->
-    <div class="card">
+    <div class="card" id="widget-meteor">
       <h2>☄️ Предстоящий звездопад</h2>
       <div id="meteor-name" class="value">Загрузка...</div>
       <div id="meteor-date" class="status">--</div>
     </div>
 
     <!-- Затмения -->
-    <div class="card">
+    <div class="card" id="widget-eclipse">
       <h2>🌒 Солнечное затмение</h2>
       <div id="eclipse-date" class="value">Загрузка...</div>
       <div id="eclipse-type" class="status">--</div>
     </div>
 
     <!-- Фаза Луны -->
-    <div class="card">
+    <div class="card" id="widget-moon">
       <h2>🌕 Фаза Луны</h2>
       <div id="moon-phase" class="value">Загрузка...</div>
       <div id="moon-illumination" class="status">--</div>
@@ -104,21 +121,55 @@
 </div>
 
 <script>
+  // ==========================================
+  // НАСТРОЙКИ ВКЛЮЧЕНИЯ / ОТКЛЮЧЕНИЯ ВИДЖЕТОВ
+  // 1 = включен, 0 = отключен
+  // ==========================================
+  const CONFIG = {
+    SHOW_WEATHER: 1,
+    SHOW_PRECIPITATION: 1,
+    SHOW_AURORA: 1,
+    SHOW_METEOR: 1,
+    SHOW_ECLIPSE: 1,
+    SHOW_MOON: 1
+  };
+
+  // Инициализация видимости блоков на основе CONFIG
+  function applyWidgetConfig() {
+    toggleElement('widget-weather', CONFIG.SHOW_WEATHER);
+    toggleElement('widget-precipitation', CONFIG.SHOW_PRECIPITATION);
+    toggleElement('widget-aurora', CONFIG.SHOW_AURORA);
+    toggleElement('widget-meteor', CONFIG.SHOW_METEOR);
+    toggleElement('widget-eclipse', CONFIG.SHOW_ECLIPSE);
+    toggleElement('widget-moon', CONFIG.SHOW_MOON);
+  }
+
+  function toggleElement(id, isEnabled) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isEnabled ? 'block' : 'none';
+  }
+
   let weatherData = null;
   let showTomorrow = false;
 
-  // 1. Погода (Сегодня / Завтра с автоматическим переключением)
+  // 1. Загрузка данных погоды и осадков
   async function fetchWeather(lat = 58.37, lon = 26.72) {
+    if (!CONFIG.SHOW_WEATHER && !CONFIG.SHOW_PRECIPITATION) return;
+
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=cloudcover,precipitation&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,cloudcover_mean&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=cloudcover,precipitation,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,cloudcover_mean&timezone=auto`;
       const res = await fetch(url);
       weatherData = await res.json();
-      renderWeather();
+      
+      if (CONFIG.SHOW_WEATHER) renderWeather();
+      if (CONFIG.SHOW_PRECIPITATION) renderPrecipitation();
     } catch (e) {
-      document.getElementById('weather-temp').innerText = '❌ Ошибка';
+      if (CONFIG.SHOW_WEATHER) document.getElementById('weather-temp').innerText = '❌ Ошибка';
+      if (CONFIG.SHOW_PRECIPITATION) document.getElementById('precip-total').innerText = '❌ Ошибка';
     }
   }
 
+  // Отрисовка основной погоды
   function renderWeather() {
     if (!weatherData) return;
 
@@ -127,7 +178,6 @@
     const detailsEl = document.getElementById('weather-details');
 
     if (!showTomorrow) {
-      // Погода на сегодня (текущие данные)
       labelEl.innerText = 'Сегодня';
       const temp = weatherData.current_weather.temperature;
       const clouds = weatherData.hourly.cloudcover[0] || 0;
@@ -136,7 +186,6 @@
       tempEl.innerText = `🌡️ ${temp} °C`;
       detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
     } else {
-      // Погода на завтра (средние / суточные данные)
       labelEl.innerText = 'Завтра';
       const maxTemp = weatherData.daily.temperature_2m_max[1];
       const minTemp = weatherData.daily.temperature_2m_min[1];
@@ -144,19 +193,53 @@
       const precip = weatherData.daily.precipitation_sum[1];
       const clouds = weatherData.daily.cloudcover_mean[1];
 
-      tempEl.innerText = `🌡️ ~${avgTemp} °C (${minTemp}…${maxTemp}°C)`;
+      tempEl.innerText = `🌡️ ~${avgTemp} °C`;
       detailsEl.innerHTML = `🌧️ Осадки: ${precip} мм<br>☁️ Облачность: ${clouds}%`;
     }
   }
 
-  // Переключение погоды «Сегодня / Завтра» каждые 30 секунд
-  setInterval(() => {
-    showTomorrow = !showTomorrow;
-    renderWeather();
-  }, 30000);
+  // Отрисовка подробных осадков
+  function renderPrecipitation() {
+    if (!weatherData) return;
 
-  // 2. Северное сияние (NOAA Kp-индекс)
+    const totalEl = document.getElementById('precip-total');
+    const detailsEl = document.getElementById('precip-details');
+
+    const todaySum = weatherData.daily.precipitation_sum[0] || 0;
+    const probMax = weatherData.daily.precipitation_probability_max 
+      ? weatherData.daily.precipitation_probability_max[0] 
+      : 0;
+
+    // Осадки по часам на ближайшие 3 часа
+    const h0 = weatherData.hourly.precipitation[0] || 0;
+    const h1 = weatherData.hourly.precipitation[1] || 0;
+    const h2 = weatherData.hourly.precipitation[2] || 0;
+
+    totalEl.innerText = `💧 ${todaySum} мм / сут`;
+    detailsEl.innerHTML = `
+      🎯 Вероятность: ${probMax}%<br>
+      ⏱️ Ближайшие часы:<br>
+      +1ч: ${h0} мм | +2ч: ${h1} мм | +3ч: ${h2} мм
+    `;
+  }
+
+  // Плавное переключение погоды каждые 60 секунд
+  if (CONFIG.SHOW_WEATHER) {
+    setInterval(() => {
+      const bodyEl = document.getElementById('weather-body');
+      bodyEl.classList.add('hidden');
+      
+      setTimeout(() => {
+        showTomorrow = !showTomorrow;
+        renderWeather();
+        bodyEl.classList.remove('hidden');
+      }, 500); // 500мс анимация затухания
+    }, 60000);
+  }
+
+  // 2. Северное сияние
   async function fetchAurora() {
+    if (!CONFIG.SHOW_AURORA) return;
     try {
       const res = await fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json');
       const data = await res.json();
@@ -172,10 +255,10 @@
     }
   }
 
-  // 3. Ближайшие будущие звездопады
+  // 3. Звездопады
   function fetchMeteors() {
+    if (!CONFIG.SHOW_METEOR) return;
     const now = new Date();
-    // База звездопадов
     const showers = [
       { name: 'Ориониды ☄️', start: new Date(now.getFullYear(), 9, 21) },
       { name: 'Леониды ☄️', start: new Date(now.getFullYear(), 10, 17) },
@@ -186,7 +269,6 @@
       { name: 'Персеиды ☄️', start: new Date(now.getFullYear() + 1, 7, 12) }
     ];
 
-    // Находим первый будущий звездопад
     const nextShower = showers.find(s => s.start > now) || showers[0];
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     
@@ -194,8 +276,9 @@
     document.getElementById('meteor-date').innerText = `📅 Пик: ${nextShower.start.toLocaleDateString('ru-RU', options)}`;
   }
 
-  // 4. Ближайшие будущие затмения
+  // 4. Затмения
   function fetchEclipses() {
+    if (!CONFIG.SHOW_ECLIPSE) return;
     const now = new Date();
     const eclipses = [
       { date: new Date(2027, 7, 2), type: 'Полное солнечное затмение' },
@@ -211,8 +294,9 @@
     document.getElementById('eclipse-type').innerText = `🔍 ${nextEclipse.type}`;
   }
 
-  // 5. Расчет фазы Луны и освещенности
+  // 5. Фазы Луны
   function fetchMoonPhase() {
+    if (!CONFIG.SHOW_MOON) return;
     const now = new Date();
     const knownNewMoon = new Date(2000, 0, 6, 18, 14, 0); 
     const synodicMonth = 29.53058882;
@@ -235,8 +319,9 @@
     document.getElementById('moon-illumination').innerText = `💡 Освещенность: ${illumination}%`;
   }
 
-  // Запуск и первичная загрузка
+  // Запуск системы
   function loadAllData() {
+    applyWidgetConfig();
     navigator.geolocation.getCurrentPosition(
       pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
       () => fetchWeather()
@@ -249,7 +334,7 @@
 
   loadAllData();
 
-  // Обновление всех данных раз в час (3 600 000 миллисекунд)
+  // Автоматическое обновление раз в час
   setInterval(loadAllData, 3600000);
 </script>
 
