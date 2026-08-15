@@ -24,12 +24,12 @@
       max-width: 900px;
       width: 100%;
     }
-    h1 { text-align: center; color: var(--accent); }
+    h1 { text-align: center; color: var(--accent); margin-bottom: 5px; }
+    .coords-info { text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 20px; }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
-      margin-top: 20px;
     }
     .card {
       background: var(--card-bg);
@@ -58,7 +58,6 @@
       margin-left: auto;
       color: #38bdf8;
     }
-    /* Плавное исчезновение/появление для виджета погоды */
     .fade-content {
       transition: opacity 0.5s ease-in-out;
       opacity: 1;
@@ -72,6 +71,7 @@
 
 <div class="container">
   <h1>🌌 Дашборд погоды и астрономии</h1>
+  <div id="coords-display" class="coords-info">📍 Координаты: загрузка...</div>
   
   <div class="grid">
     <!-- Погода -->
@@ -122,10 +122,14 @@
 
 <script>
   // ==========================================
-  // НАСТРОЙКИ ВКЛЮЧЕНИЯ / ОТКЛЮЧЕНИЯ ВИДЖЕТОВ
-  // 1 = включен, 0 = отключен
+  // НАСТРОЙКИ КООРДИНАТ И ВИДЖЕТОВ
   // ==========================================
   const CONFIG = {
+    // Введите ваши широту (LATITUDE) и долготу (LONGITUDE)
+    LATITUDE: 58.37,
+    LONGITUDE: 26.72,
+
+    // Переключатели виджетов (1 = включен, 0 = отключен)
     SHOW_WEATHER: 1,
     SHOW_PRECIPITATION: 1,
     SHOW_AURORA: 1,
@@ -134,7 +138,11 @@
     SHOW_MOON: 1
   };
 
-  // Инициализация видимости блоков на основе CONFIG
+  let currentLat = CONFIG.LATITUDE;
+  let currentLon = CONFIG.LONGITUDE;
+  let weatherData = null;
+  let showTomorrow = false;
+
   function applyWidgetConfig() {
     toggleElement('widget-weather', CONFIG.SHOW_WEATHER);
     toggleElement('widget-precipitation', CONFIG.SHOW_PRECIPITATION);
@@ -149,15 +157,16 @@
     if (el) el.style.display = isEnabled ? 'block' : 'none';
   }
 
-  let weatherData = null;
-  let showTomorrow = false;
+  function updateCoordsDisplay(lat, lon) {
+    document.getElementById('coords-display').innerText = `📍 Координаты: ${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
+  }
 
-  // 1. Загрузка данных погоды и осадков
-  async function fetchWeather(lat = 58.37, lon = 26.72) {
+  // 1. Погода и Осадки
+  async function fetchWeather(lat, lon) {
     if (!CONFIG.SHOW_WEATHER && !CONFIG.SHOW_PRECIPITATION) return;
 
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=cloudcover,precipitation,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,cloudcover_mean&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=cloudcover,precipitation&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,cloudcover_mean&timezone=auto`;
       const res = await fetch(url);
       weatherData = await res.json();
       
@@ -169,7 +178,6 @@
     }
   }
 
-  // Отрисовка основной погоды
   function renderWeather() {
     if (!weatherData) return;
 
@@ -198,7 +206,6 @@
     }
   }
 
-  // Отрисовка подробных осадков
   function renderPrecipitation() {
     if (!weatherData) return;
 
@@ -210,7 +217,6 @@
       ? weatherData.daily.precipitation_probability_max[0] 
       : 0;
 
-    // Осадки по часам на ближайшие 3 часа
     const h0 = weatherData.hourly.precipitation[0] || 0;
     const h1 = weatherData.hourly.precipitation[1] || 0;
     const h2 = weatherData.hourly.precipitation[2] || 0;
@@ -223,7 +229,7 @@
     `;
   }
 
-  // Плавное переключение погоды каждые 60 секунд
+  // Плавный затухающий переход погоды раз в 60 сек
   if (CONFIG.SHOW_WEATHER) {
     setInterval(() => {
       const bodyEl = document.getElementById('weather-body');
@@ -233,12 +239,12 @@
         showTomorrow = !showTomorrow;
         renderWeather();
         bodyEl.classList.remove('hidden');
-      }, 500); // 500мс анимация затухания
+      }, 500);
     }, 60000);
   }
 
-  // 2. Северное сияние
-  async function fetchAurora() {
+  // 2. Северное сияние (учитывает широту)
+  async function fetchAurora(lat) {
     if (!CONFIG.SHOW_AURORA) return;
     try {
       const res = await fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json');
@@ -246,10 +252,15 @@
       const lastEntry = data[data.length - 1];
       const kp = lastEntry.kp_index;
 
+      // Оценка шанса видимости в зависимости от широты
+      let requiredKp = 5;
+      if (lat >= 60) requiredKp = 3;
+      else if (lat >= 55) requiredKp = 4;
+
       document.getElementById('aurora-kp').innerText = `📊 Kp: ${kp} / 9`;
-      document.getElementById('aurora-status').innerText = kp >= 5 
+      document.getElementById('aurora-status').innerText = kp >= requiredKp 
         ? '🟢 Высокая вероятность наблюдения!' 
-        : '⚪ Низкая активность';
+        : `⚪ Низкая (нужен Kp ≥ ${requiredKp})`;
     } catch (e) {
       document.getElementById('aurora-kp').innerText = '❌ Ошибка';
     }
@@ -319,14 +330,32 @@
     document.getElementById('moon-illumination').innerText = `💡 Освещенность: ${illumination}%`;
   }
 
-  // Запуск системы
+  // Инициализация
   function loadAllData() {
     applyWidgetConfig();
-    navigator.geolocation.getCurrentPosition(
-      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-      () => fetchWeather()
-    );
-    fetchAurora();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          currentLat = pos.coords.latitude;
+          currentLon = pos.coords.longitude;
+          updateCoordsDisplay(currentLat, currentLon);
+          runDataFetch();
+        },
+        () => {
+          updateCoordsDisplay(currentLat, currentLon);
+          runDataFetch();
+        }
+      );
+    } else {
+      updateCoordsDisplay(currentLat, currentLon);
+      runDataFetch();
+    }
+  }
+
+  function runDataFetch() {
+    fetchWeather(currentLat, currentLon);
+    fetchAurora(currentLat);
     fetchMeteors();
     fetchEclipses();
     fetchMoonPhase();
@@ -334,7 +363,7 @@
 
   loadAllData();
 
-  // Автоматическое обновление раз в час
+  // Автообновление каждые 60 минут
   setInterval(loadAllData, 3600000);
 </script>
 
