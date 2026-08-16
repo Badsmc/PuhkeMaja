@@ -106,6 +106,13 @@
     </div>
     
     <div class="grid">
+      <!-- Дата и Время -->
+      <div class="card" id="widget-datetime">
+        <h2>🕒 <span id="h-datetime">Date & Time</span></h2>
+        <div id="clock-time" class="value">00:00:00</div>
+        <div id="clock-date" class="status">--</div>
+      </div>
+
       <!-- Погода -->
       <div class="card" id="widget-weather">
         <h2>🌤️ <span id="h-weather">Weather</span> <span id="weather-label" class="badge">--</span></h2>
@@ -160,6 +167,7 @@
   const CONFIG = {
     LATITUDE: 58.37,
     LONGITUDE: 26.72,
+    SHOW_DATETIME: 1,
     SHOW_WEATHER: 1,
     SHOW_PRECIPITATION: 1,
     SHOW_AURORA: 1,
@@ -172,6 +180,7 @@
     et: {
       title: "🌌 Ilma- ja Astronoomia Töölaud",
       coords: "📍 Koordinaadid",
+      hDatetime: "Aeg ja Kuupäev",
       hWeather: "Ilm",
       hPrecip: "Sademed",
       hAurora: "Virmalised",
@@ -207,6 +216,7 @@
     en: {
       title: "🌌 Astronomy & Weather Dashboard",
       coords: "📍 Coordinates",
+      hDatetime: "Date & Time",
       hWeather: "Weather",
       hPrecip: "Precipitation",
       hAurora: "Northern Lights",
@@ -248,6 +258,7 @@
   let showTomorrow = false;
 
   function applyWidgetConfig() {
+    toggleElement('widget-datetime', CONFIG.SHOW_DATETIME);
     toggleElement('widget-weather', CONFIG.SHOW_WEATHER);
     toggleElement('widget-precipitation', CONFIG.SHOW_PRECIPITATION);
     toggleElement('widget-aurora', CONFIG.SHOW_AURORA);
@@ -266,11 +277,11 @@
     document.getElementById('title-main').innerText = t.title;
     document.getElementById('coords-display').innerText = `${t.coords}: ${currentLat.toFixed(2)}° N, ${currentLon.toFixed(2)}° E`;
     
-    // Юникод-последовательности гарантия работы флагов
     const flagEst = "\uD83C\uDDEA\uD83C\uDDFE"; // 🇪🇪
     const flagEng = "\uD83C\uDDEC\uD83C\uDDE7"; // 🇬🇧
     document.getElementById('lang-indicator').innerText = currentLang === 'et' ? `${flagEst} EST` : `${flagEng} ENG`;
 
+    document.getElementById('h-datetime').innerText = t.hDatetime;
     document.getElementById('h-weather').innerText = t.hWeather;
     document.getElementById('h-precip').innerText = t.hPrecip;
     document.getElementById('h-aurora').innerText = t.hAurora;
@@ -279,6 +290,20 @@
     document.getElementById('h-moon').innerText = t.hMoon;
   }
 
+  // 1. Часы и Дата
+  function updateClock() {
+    if (!CONFIG.SHOW_DATETIME) return;
+    const t = I18N[currentLang];
+    const now = new Date();
+
+    const timeStr = now.toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateStr = now.toLocaleDateString(t.locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    document.getElementById('clock-time').innerText = timeStr;
+    document.getElementById('clock-date').innerText = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+  }
+
+  // 2. Погода и Осадки
   async function fetchWeather(lat, lon) {
     if (!CONFIG.SHOW_WEATHER && !CONFIG.SHOW_PRECIPITATION) return;
 
@@ -347,6 +372,7 @@
     `;
   }
 
+  // 3. Северное сияние
   async function fetchAurora(lat) {
     if (!CONFIG.SHOW_AURORA) return;
     const t = I18N[currentLang];
@@ -369,6 +395,7 @@
     }
   }
 
+  // 4. Звездопады
   function fetchMeteors() {
     if (!CONFIG.SHOW_METEOR) return;
     const t = I18N[currentLang];
@@ -390,6 +417,7 @@
     document.getElementById('meteor-date').innerText = `📅 ${t.peak}: ${nextShower.start.toLocaleDateString(t.locale, options)}`;
   }
 
+  // 5. Затмения
   function fetchEclipses() {
     if (!CONFIG.SHOW_ECLIPSE) return;
     const t = I18N[currentLang];
@@ -408,6 +436,7 @@
     document.getElementById('eclipse-type').innerText = `🔍 ${nextEclipse.type}`;
   }
 
+  // 6. Фазы Луны
   function fetchMoonPhase() {
     if (!CONFIG.SHOW_MOON) return;
     const t = I18N[currentLang];
@@ -435,6 +464,7 @@
 
   function runDataFetch() {
     updateStaticLabels();
+    updateClock();
     fetchWeather(currentLat, currentLon);
     fetchAurora(currentLat);
     fetchMeteors();
@@ -461,6 +491,9 @@
 
   loadAllData();
 
+  // Обновление секунд часов каждую секунду
+  setInterval(updateClock, 1000);
+
   // Плавная смена Сегодня/Завтра каждые 60 сек
   if (CONFIG.SHOW_WEATHER) {
     setInterval(() => {
@@ -475,7 +508,7 @@
     }, 60000);
   }
 
-  // Плавная перерисовка языка каждые 90 секунд (90000 миллисекунд)
+  // Плавная перерисовка языка каждые 90 секунд
   setInterval(() => {
     const wrapper = document.getElementById('app-wrapper');
     wrapper.classList.add('hidden');
